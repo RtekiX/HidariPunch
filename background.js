@@ -20,10 +20,27 @@ async function checkLocal(settings) {
   if(health.status!=='ok') throw Error('本地模型尚未准备好');
 }
 chrome.runtime.onMessage.addListener((m,sender,reply)=>{
-  if (sender.id !== chrome.runtime.id || sender.tab) return;
+  if (sender.id !== chrome.runtime.id) return;
+  if(sender.tab && !['GET_OVERLAY_POSITION','SAVE_OVERLAY_POSITION'].includes(m.type))return;
   if (m.target === 'offscreen') return;
   (async()=>{
     await initial;
+    if(m.type==='GET_OVERLAY_POSITION') return {position:(await chrome.storage.local.get('overlayPosition')).overlayPosition || null};
+    if(m.type==='SAVE_OVERLAY_POSITION') {
+      const p=m.position;
+      if(p!==null && (!p || ![p.left,p.top,p.width].every(Number.isFinite) || p.left<0 || p.top<0 || p.width<100 || p.width>4000 || p.left>100000 || p.top>100000))throw Error('字幕位置无效');
+      await chrome.storage.local.set({overlayPosition:p===null?null:{left:p.left,top:p.top,width:p.width}});
+      return {ok:true};
+    }
+    if(m.type==='UPDATE' || m.type==='UPDATE_STATUS') {
+      const settings=HidariConfig.normalize(m.settings);
+      if(m.type==='UPDATE' && await chrome.offscreen.hasDocument())await chrome.runtime.sendMessage({target:'offscreen',type:'STOP'});
+      let response;
+      try {response=await fetch(HidariConfig.localURL(settings,'hidari/update'),{method:m.type==='UPDATE'?'POST':'GET',headers:{'Content-Type':'application/json','X-Hidari-Update':'1'},...(m.type==='UPDATE'?{body:'{}'}:{}),redirect:'error',signal:AbortSignal.timeout(5000)});}
+      catch {throw Error('请先启动 start.cmd；旧版本请先运行 update.cmd，再重启本地服务。');}
+      if(!response.ok)throw Error('当前服务不支持更新，请运行 update.cmd 并重启 start.cmd。');
+      return await response.json();
+    }
     if(m.type==='STATUS') return (await chrome.storage.session.get('state')).state || {message:'准备就绪'};
     if(m.type==='CHECK_LOCAL') {
       const settings=HidariConfig.normalize(m.settings);

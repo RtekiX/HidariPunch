@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN"><meta charset="utf-8"><title>HidariPunch</title>
 <link rel="stylesheet" href="popup.css">
-<main><div class="eyebrow">HIDARI PUNCH / LIVE SUBTITLES</div><h1>听懂这一刻。</h1><p>本地日语字幕 · 可选中文翻译</p>
+<main><div class="eyebrow">HIDARI PUNCH / LIVE SUBTITLES</div><p>本地日语字幕 · 可选中文翻译</p>
 <form id="settings"><label class="check"><input id="translate" type="checkbox">启用中文翻译（默认仅显示日语识别）</label>
 <div id="translationSettings" hidden><label>DeepSeek API Key<input id="key" type="password" placeholder="DeepSeek 密钥" autocomplete="off"></label>
 <label>DeepSeek 翻译模型<input id="model" value="deepseek-flash"></label>
@@ -12,4 +12,4 @@
 <label>音频分段<select id="seconds"><option value="3">3 秒 · 更快</option><option value="5" selected>5 秒 · 均衡</option><option value="8">8 秒 · 更完整</option></select></label>
 <p class="note" id="privacy">仅识别模式无需 Key，音频只发送到本机，不调用 DeepSeek。请先启动本地服务并播放视频。</p>
 <button id="start" type="submit">开始识别 ↗</button><button id="stop" type="button" class="secondary">停止</button></form>
-<p id="status" role="status">准备就绪</p><button id="forget" class="link">清除已保存密钥</button></main><script src="config.js"></script><script src="popup.js"></script></html>
+<p id="status" role="status">准备就绪</p><button id="update" type="button" class="secondary">一键更新</button><p class="note">更新源码并重新加载扩展，保留本机配置和 Key。后端更新后请重启 start.cmd，再刷新 YouTube。</p><button id="forget" class="link">清除已保存密钥</button></main><script src="config.js"></script><script src="popup.js"></script></html>

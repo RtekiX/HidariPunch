@@ -13,6 +13,7 @@ function launch(config={}, backend) {
       if(name==='node:os')return {availableParallelism:()=>20};
       if(name==='node:child_process')return {spawn:(...args)=>{call=args;return {on(){}};}};
       if(name==='./models.cjs')return require('../local/models.cjs');
+      if(name==='./gateway.cjs')return {createGateway:()=>({on(){},close(){}})};
       throw Error('Unexpected require: '+name);
     }});
   vm.runInContext(fs.readFileSync('local/server.cjs','utf8'),c);

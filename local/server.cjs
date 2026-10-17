@@ -1,6 +1,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {spawn}=require('node:child_process');
+const {createGateway}=require('./gateway.cjs');
 const root=path.resolve(__dirname,'..','.local');
 const models=require('./models.cjs');
 const runtimeConfig=fs.existsSync(path.join(root,'runtime-config.json'))?JSON.parse(fs.readFileSync(path.join(root,'runtime-config.json'),'utf8')):{};
@@ -27,15 +28,18 @@ if(!executable || !fs.existsSync(executable) || !fs.existsSync(modelPath)) {
 // Model stays loaded between requests. No shell, no audio files written by this launcher.
 // Relative ASCII model paths also work with Windows builds whose argv/fopen
 // cannot handle a workspace path containing Chinese characters.
-const args=['--host','127.0.0.1','--port',String(port),'-m',path.relative(root,modelPath),'-l','ja','-t',String(Math.min(8,require('node:os').availableParallelism()))];
+const enginePort=port<=55535?port+10000:port-10000;
+const args=['--host','127.0.0.1','--port',String(enginePort),'-m',path.relative(root,modelPath),'-l','ja','-t',String(Math.min(8,require('node:os').availableParallelism()))];
 if(backend==='cpu') args.push('--no-gpu');
 const vulkanCompat=backend==='vulkan' && runtimeConfig.vulkanCompat!==false;
 if(process.env.HIDARI_NO_FLASH_ATTN==='1' || vulkanCompat) args.push('--no-flash-attn');
 const childEnv={...process.env};
 if(vulkanCompat) {childEnv.GGML_VK_DISABLE_COOPMAT='1';childEnv.GGML_VK_DISABLE_COOPMAT2='1';}
 const child=spawn(executable,args,{cwd:root,env:childEnv,stdio:'inherit',windowsHide:true});
+const gateway=createGateway({port,enginePort,root:path.resolve(__dirname,'..')});
+gateway.on('error',()=>child.kill());
 console.log(`Starting local Japanese ASR: http://127.0.0.1:${port} | model=${model} | requested backend=${backend}. Ctrl+C stops the service.`);
-child.on('error',e=>{console.error(e.message);process.exitCode=1;});
-child.on('exit',(code,signal)=>{console.log(`ASR process exited: code=${code}, signal=${signal || 'none'}`);process.exitCode=code===0?0:1;});
+child.on('error',e=>{console.error(e.message);gateway.close();process.exitCode=1;});
+child.on('exit',(code,signal)=>{gateway.close();console.log(`ASR process exited: code=${code}, signal=${signal || 'none'}`);process.exitCode=code===0?0:1;});
 process.on('SIGINT',()=>child.kill());
 process.on('SIGTERM',()=>child.kill());

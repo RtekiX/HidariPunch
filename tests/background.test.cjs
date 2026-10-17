@@ -67,3 +67,15 @@ test('stop during local health check cancels pending start before capture',async
   const result=await starting;
   assert.match(result.message,/已取消/);assert.equal(e.captured(),0);
 });
+test('overlay storage accepts only coordinates and never exposes saved keys',async()=>{
+  const e=setup(async()=>{throw Error('No network expected');});
+  e.local.deepseekKey='test-only';
+  await e.message({type:'SAVE_OVERLAY_POSITION',position:{left:20,top:30,width:500,deepseekKey:'ignored'}});
+  const result=await e.message({type:'GET_OVERLAY_POSITION'});
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{position:{left:20,top:30,width:500}});
+  assert.equal(e.local.deepseekKey,'test-only');
+  const bad=await e.message({type:'SAVE_OVERLAY_POSITION',position:{left:-10,top:30,width:500}});
+  assert.equal(bad.ok,false);
+  await e.message({type:'SAVE_OVERLAY_POSITION',position:null});
+  assert.equal((await e.message({type:'GET_OVERLAY_POSITION'})).position,null);
+});

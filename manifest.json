@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
   "name": "HidariPunch · 日中直播字幕",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "本地识别 YouTube 日语音频并显示字幕，可选使用 DeepSeek 翻译为中文。",
   "minimum_chrome_version": "116",
   "permissions": ["activeTab", "tabCapture", "offscreen", "storage"],
   "host_permissions": ["https://api.deepseek.com/*", "http://127.0.0.1/*"],
   "background": {"service_worker": "background.js"},
   "action": {"default_popup": "popup.html"},
-  "content_scripts": [{"matches": ["https://www.youtube.com/*"], "js": ["content.js"]}]
+  "content_scripts": [{"matches": ["https://www.youtube.com/*"], "js": ["overlay.js", "content.js"]}]
 }

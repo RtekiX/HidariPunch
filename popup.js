@@ -51,3 +51,21 @@ $('testLocal').onclick = async () => {
   finally { $('testLocal').disabled=false; }
 };
 init().catch(e => $('status').textContent=e.message);
+$('update').onclick=async()=>{
+  $('update').disabled=true;$('status').textContent='正在检查并更新源码…';
+  try {
+    const settings={localPort:$('localPort').value};
+    let result=await chrome.runtime.sendMessage({type:'UPDATE',settings});
+    const deadline=Date.now()+180000;
+    while(result.status==='running') {
+      if(Date.now()>deadline)throw Error('更新仍在进行，请稍后重新打开插件查看，或运行 update.cmd。');
+      await new Promise(resolve=>setTimeout(resolve,1000));
+      result=await chrome.runtime.sendMessage({type:'UPDATE_STATUS',settings});
+    }
+    if(!result.ok)throw Error(result.message || '更新失败');
+    $('status').textContent='更新完成，将重新加载扩展。请重启 start.cmd 并刷新 YouTube。';
+    await new Promise(resolve=>setTimeout(resolve,1500));
+    chrome.runtime.reload();
+  } catch(e) {$('status').textContent=e.message;}
+  finally {$('update').disabled=false;}
+};
