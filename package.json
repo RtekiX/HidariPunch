@@ -1,0 +1,16 @@
+{
+  "name": "hidari-punch",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "check": "node --check config.js && node --check audio.js && node --check background.js && node --check offscreen.js && node --check popup.js && node --check content.js && node --check local/setup.cjs && node --check local/server.cjs && node --check local/models.cjs && node --check local/switch-model.cjs && node --check local/setup-vulkan.cjs && node --check local/benchmark.cjs && node --check local/verify-runtime.cjs && node --check local/check-publish.cjs",
+    "local:setup": "node local/setup.cjs",
+    "local:start": "node local/server.cjs",
+    "local:switch": "node local/switch-model.cjs",
+    "local:setup:vulkan": "node local/setup-vulkan.cjs",
+    "local:start:vulkan": "node local/server.cjs kotoba-v2 vulkan",
+    "local:start:cpu": "node local/server.cjs kotoba-v2 cpu",
+    "check:publish": "node local/check-publish.cjs"
+  }
+}
