@@ -98,3 +98,47 @@ test('recognition-only emits Japanese without a key or any cloud request',async(
   assert.equal(env.events.at(-1).translate,false);
   await env.message({type:'STOP'});
 });
+test('translation uses the latest three completed segments and leaves the current segment last',async()=>{
+  let segment=0;
+  const env=setup(async url=>({ok:true,json:async()=>url.endsWith('inference')?{text:'原文'+(++segment)}:{choices:[{message:{content:'译文'+segment}}]}}));
+  await env.message(start);
+  for(let i=0;i<5;i++){env.tick();await settle();}
+  const calls=env.requests.filter(r=>r.url.includes('deepseek')).map(r=>JSON.parse(r.options.body));
+  assert.equal(calls.length,5);assert.equal(calls[0].messages.length,2);
+  assert.deepEqual(calls[4].messages.slice(1),[
+    {role:'user',content:'原文2'},{role:'assistant',content:'译文2'},
+    {role:'user',content:'原文3'},{role:'assistant',content:'译文3'},
+    {role:'user',content:'原文4'},{role:'assistant',content:'译文4'},
+    {role:'user',content:'原文5'}
+  ]);
+  assert.match(calls[4].messages[0].content,/不重复前文译文/);
+  assert.match(calls[4].messages[0].content,/不要输出「未听清」/);
+  assert.deepEqual(env.events.filter(e=>e.zh).map(e=>e.zh),['译文1','译文2','译文3','译文4','译文5']);
+  await env.message({type:'STOP'});
+});
+test('a restarted session has no previous translation context',async()=>{
+  const env=setup(async url=>({ok:true,json:async()=>url.endsWith('inference')?{text:'こんにちは'}:{choices:[{message:{content:'你好'}}]}}));
+  await env.message(start);env.tick();await settle();
+  await env.message({type:'STOP'});
+  await env.message({...start,tabId:8});env.tick();await settle();
+  const calls=env.requests.filter(r=>r.url.includes('deepseek')).map(r=>JSON.parse(r.options.body));
+  assert.equal(calls.length,2);assert.equal(calls[1].messages.length,2);
+  await env.message({type:'STOP'});
+});
+test('a translation finishing after stop cannot leak into a new session',async()=>{
+  let finish;
+  let translations=0;
+  const env=setup(async url=>{
+    if(url.endsWith('inference'))return {ok:true,json:async()=>({text:'日语'})};
+    if(++translations===1)return new Promise(resolve=>{finish=()=>resolve({ok:true,json:async()=>({choices:[{message:{content:'旧译文'}}]})});});
+    return {ok:true,json:async()=>({choices:[{message:{content:'新译文'}}]})};
+  });
+  await env.message(start);env.tick();await settle();
+  await env.message({type:'STOP'});
+  await env.message({...start,tabId:8});
+  finish();await settle();env.tick();await settle();
+  const calls=env.requests.filter(r=>r.url.includes('deepseek')).map(r=>JSON.parse(r.options.body));
+  assert.equal(calls[1].messages.length,2);
+  assert.deepEqual(env.events.filter(e=>e.zh).map(e=>e.zh),['新译文']);
+  await env.message({type:'STOP'});
+});
